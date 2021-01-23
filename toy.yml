@@ -1,0 +1,34 @@
+#
+# A right cylinder model geometry for a glider
+# 
+# Jan-2020, Pat Welch, pat@mousebrains.com
+
+name: toy # Name of this glider
+
+fluids:
+  air: 1.293 # kilograms per cubic meter
+  seawater: 1024 # kilograms per cubic meter of seawater
+
+mass: 75 # glider mass in kilograms
+
+geometry: # Components of the geometry
+  body:
+    shape: cylinder # A right cylinder without ends
+
+    # Frist construct a cylinder along the z axis centered at the origin
+
+    length: 1.8 # meters
+    radius: 0.2 # meters
+
+    # Next rotate the cylinder about y from the z-axis to the x-axis
+    rotation: [0, 90, 0] # rotation angles in degrees, [yaw, roll, pitch]
+                        # yaw/heading is rotation about z
+                        # pitch is rotation about y
+                        # roll is rotation about x
+    
+    # Next offset the rotated cylinder
+    offset: [0, 0, 0] # offset of midpoint of cylinder in meters
+
+    # Total number of patches is nRadial * nLength
+    nRadial: 100 # number of elements in radial dimension
+    nLength: 100 # number of elements in length dimension
