@@ -37,7 +37,7 @@ class Base:
     def integrate(self, force:np.array, rotation:R=None) -> np.array:
         """ Return surface integral over force """
         surface = self.surface
-        if rotation is not None: surface = rotation.apply(surface)
+        if rotation is not None: surface = rotation.apply(surface, inverse=True)
         # integral of dot product
         return \
                 np.sum(surface[:,0] * force[:,0]) + \
