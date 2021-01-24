@@ -23,12 +23,12 @@ class Shapes(list):
         volume = 0
         for item in self: volume += item.qDry * item.volume
         return volume
-            
+
     def wetVolume(self):
         volume = 0
         for item in self: volume += (not item.qDry) * item.volume
         return volume
-            
+
 
 class Base:
     """ API specification """
@@ -38,7 +38,7 @@ class Base:
     def grid(self, rotation:R=None, offset:np.array=None) -> np.array:
         """ Return the grid points, possibly rotated and offset """
         position = self.position
-        if rotation is not None: 
+        if rotation is not None:
             # Rotate from body to grid
             position = rotation.apply(position, inverse=True)
         if offset is not None: position = np.add(position, offset)
@@ -47,7 +47,7 @@ class Base:
     def integrate(self, force:np.array, rotation:R=None) -> np.array:
         """ Return surface integral over force """
         surface = self.surface
-        if rotation is not None: 
+        if rotation is not None:
             surface = rotation.apply(surface, inverse=True)
         # integral of dot product
         return \
@@ -56,7 +56,7 @@ class Base:
                 np.sum(surface[:,2] * force[:,2])
 
     @staticmethod
-    def mkRotation(angles:list) -> R: 
+    def mkRotation(angles:list) -> R:
         return R.from_euler("ZYX", angles, degrees=True)
     @staticmethod
     def strRotation(r:R) -> list:
@@ -103,7 +103,7 @@ class Cylinder(Base):
         length = info["length"] # Length of cylinder
 
         self.__radius = radius
-        
+
         self.qDry = info["qDry"] if "qDry" in info else False
         self.volume = np.pi * radius * radius * length # Volume of cylinder
 
@@ -114,7 +114,7 @@ class Cylinder(Base):
 
         # Angle to center of each segment
         theta = np.arange(dTheta/2, 2 * np.pi, dTheta) # (0, 2pi)
-      
+
         # z of center of each segment
         zMax = info["length"] / 2
         z = np.arange(-zMax + dZ/2, zMax, dZ) # (-zMax, zMax)
