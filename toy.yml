@@ -32,3 +32,5 @@ geometry: # Components of the geometry
     # Total number of patches is nRadial * nLength
     nRadial: 100 # number of elements in radial dimension
     nLength: 100 # number of elements in length dimension
+
+    qDry: True # Is the volume enclosed dry or wet

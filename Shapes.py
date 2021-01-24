@@ -7,18 +7,28 @@
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 
-def mkShapes(info:dict, msg:str) -> list:
-    """ Info is a collection of geometry objects, each of which is returned in a list """
-    shapes = []
-    for key in info:
-        item = info[key]
-        shape = item["shape"] if "shape" in item else None
-        if shape is None: raise Exception("No shape specified for {}, {}".format(key, msg))
-        if shape == "cylinder":
-            shapes.append(Cylinder(key, item, msg))
-        else:
-            raise Exception("Unrecognized shape, {}, in {}, {}".format(shape, key, msg))
-    return shapes
+class Shapes(list):
+    def __init__(self, info:dict, msg:str) -> None:
+        list.__init__(self)
+        for key in info:
+            item = info[key]
+            shape = item["shape"] if "shape" in item else None
+            if shape is None: raise Exception("No shape specified for {}, {}".format(key, msg))
+            if shape == "cylinder":
+                self.append(Cylinder(key, item, msg))
+            else:
+                raise Exception("Unrecognized shape, {}, in {}, {}".format(shape, key, msg))
+
+    def dryVolume(self):
+        volume = 0
+        for item in self: volume += item.qDry * item.volume
+        return volume
+            
+    def wetVolume(self):
+        volume = 0
+        for item in self: volume += (not item.qDry) * item.volume
+        return volume
+            
 
 class Base:
     """ API specification """
@@ -37,7 +47,8 @@ class Base:
     def integrate(self, force:np.array, rotation:R=None) -> np.array:
         """ Return surface integral over force """
         surface = self.surface
-        if rotation is not None: surface = rotation.apply(surface, inverse=True)
+        if rotation is not None: 
+            surface = rotation.apply(surface, inverse=True)
         # integral of dot product
         return \
                 np.sum(surface[:,0] * force[:,0]) + \
@@ -45,9 +56,11 @@ class Base:
                 np.sum(surface[:,2] * force[:,2])
 
     @staticmethod
-    def mkRotation(angles:list) -> R: return R.from_euler("ZYX", angles, degrees=True)
+    def mkRotation(angles:list) -> R: 
+        return R.from_euler("ZYX", angles, degrees=True)
     @staticmethod
-    def strRotation(r:R) -> list: return r.as_euler("ZYX", degrees=True)
+    def strRotation(r:R) -> list:
+        return r.as_euler("ZYX", degrees=True)
 
     # Plotting methods for a shape
 
@@ -86,11 +99,17 @@ class Cylinder(Base):
 
         self.__info = info
 
-        dTheta = (2 * np.pi) / info["nRadial"] # Step size in theta
-        dZ = info["length"] / info["nLength"]  # Step size along axis
-
         radius = info["radius"] # Radius of the cylinder
+        length = info["length"] # Length of cylinder
+
         self.__radius = radius
+        
+        self.qDry = info["qDry"] if "qDry" in info else False
+        self.volume = np.pi * radius * radius * length # Volume of cylinder
+
+        dTheta = (2 * np.pi) / info["nRadial"] # Step size in theta
+        dZ = length / info["nLength"]  # Step size along axis
+
         self.__area = dZ * self.__radius * dTheta # Area of each element
 
         # Angle to center of each segment
@@ -118,16 +137,16 @@ class Cylinder(Base):
 
         # Offset the cylinder, the unit norm does not change
         self.__offset = info["offset"]
-        position = np.add(position, self.__offset)
+        self.position = np.add(position, self.__offset) # Position of each surface element
 
         self.surface = self.__area * unitNorm # outward pointing surface vector
-        self.position  = position
 
-        
 
     def __repr__(self) -> str:
         msg = self.name + \
-                " radius {} area {} n {}".format(self.__radius, self.__area, self.position.shape[0])
+                " radius {} area {:.4g} n {} qDry {} volume {:.4g}".format(
+                        self.__radius, self.__area, self.position.shape[0],
+                        self.qDry, self.volume)
         msg+= "\n" + self.name + \
                 " rotation {}".format(self.strRotation(self.__rotation))
         msg+= "\n" + self.name + " offset {}".format(self.__offset)
@@ -155,7 +174,7 @@ if __name__ == "__main__":
 
     with open(args.glider, "r") as fp: info = yaml.safe_load(fp)
     if "geometry" not in info: raise Exception("geometry not in " + args.glider)
-    shapes = mkShapes(info["geometry"], "in " + args.glider)
+    shapes = Shapes(info["geometry"], "in " + args.glider)
 
     ax = None
     r = Base.mkRotation([args.heading, args.pitch, args.roll])
