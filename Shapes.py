@@ -71,8 +71,8 @@ class Base:
             plt.show()
 
     def plotInit(self, ax=None):
-        import matplotlib.pyplot as plt
         if ax is None:
+            import matplotlib.pyplot as plt
             fig = plt.figure()
             ax = fig.add_subplot(111, projection="3d")
             ax.set_xlabel("X")
@@ -80,14 +80,21 @@ class Base:
             ax.set_zlabel("Z")
         return ax
 
-    def plotScatter(self, ax, pos:np.array, sz=5):
-        import matplotlib.pyplot as plt
+    def plotScatter(self, ax, pos:np.array=None, sz=5):
+        if pos is None: pos = self.position
         ax = self.plotInit(ax)
         ax.scatter(pos[:,0], pos[:,1], pos[:,2], s=sz)
         return ax
 
+    def plotWireFrame(self, ax, pos:np.array=None, rstride=1, cstride=1, color:str=None):
+        if pos is None: pos = self.position
+        (x,y,z) = self.wireFrame(pos)
+        ax = self.plotInit(ax)
+        ax.plot_wireframe(x, y, z, rstride=rstride, cstride=cstride, color=color)
+        return ax
+
     def plot(self, ax=None):
-        return self.plotScatter(ax, self.position)
+        return self.plotScatter(ax)
 
 class Cylinder(Base):
     """ Cylindrical part of a cylinder with outward pointing normals to surface """
@@ -120,8 +127,8 @@ class Cylinder(Base):
         z = np.arange(-zMax + dZ/2, zMax, dZ) # (-zMax, zMax)
 
         (gTheta, gZ) = np.meshgrid(theta, z) # Grid of all possible theta/z pairs
-        gTheta = gTheta.flatten() # Change from 2D to 1D
-        gZ = gZ.flatten() # Change from 2D to 1D
+        gTheta = gTheta.ravel() # Change from 2D to 1D without copying
+        gZ = gZ.ravel() # Change from 2D to 1D without copying
 
         nx = np.cos(gTheta) # x component of outward pointing unit normal vector
         ny = np.sin(gTheta) # y component of outward pointing unit normal vector
@@ -152,6 +159,16 @@ class Cylinder(Base):
         msg+= "\n" + self.name + " offset {}".format(self.__offset)
         msg+= "\n" + self.name + " area={}".format(self.integrate(self.surface / self.__area))
         return msg
+
+    def wireFrame(self, position:np.array=None) -> tuple:
+        """ Return x,y,z for use in plotting a wire frame """
+        if position is None: position = self.position
+        nTheta = self.__info["nRadial"]
+        nZ     = self.__info["nLength"]
+        x = position[:,0].reshape(nTheta, nZ)
+        y = position[:,1].reshape(nTheta, nZ)
+        z = position[:,2].reshape(nTheta, nZ)
+        return (x, y, z)
 
 
 if __name__ == "__main__":
@@ -184,7 +201,7 @@ if __name__ == "__main__":
         print("Grid")
         print(grid)
         if args.plot:
-            ax = shp.plot(ax)
-            ax = shp.plotScatter(ax, grid)
+            ax = shp.plotWireFrame(ax, rstride=10, cstride=10, color="blue")
+            ax = shp.plotWireFrame(ax, grid, rstride=10, cstride=10, color="yellow")
 
     Base.plotShow(ax)
